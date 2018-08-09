@@ -1,0 +1,58 @@
+FROM ubuntu:16.04
+MAINTAINER lyjk2001@sina.com
+
+ADD sources.list /etc/apt/sources.list
+
+# Install basic dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential 
+
+RUN apt-get install -y python-qt4
+
+#安装anaconda2
+# Install anaconda for python 2.7
+#RUN wget --quiet https://repo.continuum.io/archive/Anaconda2-5.2.0-Linux-x86_64.sh -O ~/anaconda.sh 
+ADD Anaconda2-5.1.0-Linux-x86_64.sh /tmp/anaconda.sh
+RUN bash /tmp/anaconda.sh  -b  -p /opt/conda 
+RUN echo "export PATH=/opt/conda/bin:$PATH" >> ~/.bashrc
+ENV PATH /opt/conda/bin:$PATH
+RUN rm /tmp/anaconda.sh && \
+    conda clean -a -y 
+
+## 使用清华的源
+RUN conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/ && \
+    conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/ && \
+    conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r/ && \
+    conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/mro/ && \
+    conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/bioconda/ && \
+    conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/ && \
+    conda config --set show_channel_urls yes
+
+
+#安装软件
+RUN conda create -n alphazero_gomoku python=2.7 pip scipy numpy PIL jupyter
+RUN ["/bin/bash", "-c", "source activate alphazero_gomoku"]
+
+RUN pip install easydict -i https://pypi.tuna.tsinghua.edu.cn/simple/  && \
+    pip install keras==2.0.8  -i https://pypi.tuna.tsinghua.edu.cn/simple/   && \
+    pip install Cython opencv-python -i https://pypi.tuna.tsinghua.edu.cn/simple/  && \
+    pip install matplotlib -i https://pypi.tuna.tsinghua.edu.cn/simple/  && \
+    pip install -U pillow -i https://pypi.tuna.tsinghua.edu.cn/simple/ && \
+    pip install  h5py lmdb mahotas -i https://pypi.tuna.tsinghua.edu.cn/simple/ 
+
+
+RUN conda install tensorflow=1.3 
+RUN conda install pytorch=0.2.0 -c soumith
+RUN conda install torchvision -c soumith
+RUN conda install theano -c soumith
+RUN conda install Lasagne -c soumith
+
+#解决docker终端不能输出中文问题
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+# python命令输出默认为ASCII，需要设定变量PYTHONIOENCODING为UTF-8
+ENV PYTHONIOENCODING UTF-8
+
+WORKDIR /workspace
+EXPOSE 5000
+
